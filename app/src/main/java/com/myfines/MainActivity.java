@@ -1,9 +1,11 @@
 package com.myfines;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
@@ -11,6 +13,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.RelativeLayout;
 
+import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.AuthResult;
@@ -41,12 +44,19 @@ public class MainActivity extends AppCompatActivity {
         btnRegister.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                showRegisterscreen();
+                showRegisterScreen();
+            }
+        });
+
+        btnSignIn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                showSingInscreen();
             }
         });
     }
 
-    private void showRegisterscreen() {
+    private void showRegisterScreen() {
         AlertDialog.Builder dialog = new AlertDialog.Builder(this);
         dialog.setTitle("Зарегестрироваться");
         dialog.setMessage("Введите данные для регистрации");
@@ -90,10 +100,57 @@ public class MainActivity extends AppCompatActivity {
                                 user.setName(name.getText().toString());
                                 user.setPassword(password.getText().toString());
 
-                                users.child(user.getEmail()).setValue(user);
+                                users.child(FirebaseAuth.getInstance().getCurrentUser().getUid()).setValue(user);
                                 }
-                            });
                         });
+            }
+        });
+        dialog.show();
+    }
+
+    private void showSingInscreenScreen() {
+        AlertDialog.Builder dialog = new AlertDialog.Builder(this);
+        dialog.setTitle("Войти");
+        dialog.setMessage("Введите данные для входа");
+
+        LayoutInflater inflater = LayoutInflater.from(this);
+        View signInScreen = inflater.inflate(R.layout.signInScreen, null);
+        dialog.setView(signInScreen);
+        final MaterialEditText email = signInScreen.findViewById(R.layout.email);
+        final MaterialEditText password = signInScreen.findViewById(R.layout.password);
+
+        dialog.setNegativeButton("Отменить", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                dialogInterface.dismiss();
+            }
+        });
+
+        dialog.setPositiveButton("Войти", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                if (TextUtils.isEmpty(email.getText().toString())) {
+                    Snackbar.make(root, "Введите почту", Snackbar.LENGTH_SHORT).show();
+                    return;
+                }
+                if (password.getText().toString().length() < 8) {
+                    Snackbar.make(root, "Пароль должен содержать не менее 8 символов", Snackbar.LENGTH_SHORT).show();
+                    return;
+                }
+
+                auth.signInWithEmailAndPassword(email.getText().toString(), password.getText().toString())
+                        .addOnSuccessListener(new OnSuccessListener<AuthResult>() {
+                            @Override
+                            public void onSuccess(AuthResult authResult) {
+                                startActivity(new Intent((MainActivity.this, Next.class));
+                                finish();
+                            }
+                        }).addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Snackbar.make(root, e.getMessage(), Snackbar.LENGTH_SHORT).show();
+                    }
+                });
             }
         });
         dialog.show();
